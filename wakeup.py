@@ -37,8 +37,7 @@ def interpret(bytestring):
 
         difference = round(highcell - lowcell, 4)
         print(f"{voltage}V {current}A{chargedischarge} Cell with highest \
-             voltage at {highcell}V, lowest: {lowcell}V Difference: \
-{difference}V")
+voltage at {highcell}V, lowest: {lowcell}V Difference: {difference}V")
     else:
         print(f"bytes: {len(bytestring)} Data: {bytestring}")
 
