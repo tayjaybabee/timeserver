@@ -26,6 +26,12 @@ def interpret(bytestring):
                                    byteorder="little", signed=False) / 1000.0
         lowcell = int. from_bytes([intarray[31], intarray[32]],
                                   byteorder="little", signed=False) / 1000.0
+        percent = intarray[5]
+        temperature1 = intarray[7]
+        temperature2 = intarray[8]
+        temperature3 = intarray[9]
+        temperature4 = intarray[10]
+        power = round(voltage * current, 4)
         chargedischarge = ""
         if current == 0:
             chargedischarge = ". "
@@ -36,8 +42,10 @@ def interpret(bytestring):
                 chargedischarge = " (discharging). "
 
         difference = round(highcell - lowcell, 4)
-        print(f"{voltage}V {current}A{chargedischarge} Cell with highest \
-voltage at {highcell}V, lowest: {lowcell}V Difference: {difference}V")
+        print(f"{voltage}V {current}A{chargedischarge}{power}W \
+Cell with highest voltage at {highcell}V, lowest: {lowcell}V Difference: \
+{difference}V {percent}% charged Temperatures: {temperature1}°C {temperature2}\
+°C {temperature3}°C {temperature4}°C")
     else:
         print(f"bytes: {len(bytestring)} Data: {bytestring}")
 
