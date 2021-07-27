@@ -10,7 +10,8 @@ import sys
 import winsound
 import socket
 from time import sleep
-__version__ = '1.1'
+from wakeup import interpret
+__version__ = '1.2'
 
 WIN_TITLE = f'Broadcast SniffLer (v{__version__})'
 
@@ -263,8 +264,11 @@ def listener():
                 sys.exit()
             data, addr = receive()
             beep()
+            (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(data[4:40])
             msg = str(f"From{str(' ' * 12)}{addr} \nRecv Port: \
-    {recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}")
+    {recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
+{voltage}V, {current}A, {power}W, Highcell: {highcell}V, Lowcell: \
+{lowcell}V, Difference: {difference}V, {percent}% charged, Temperatures: {temperatures}")
 
             buffer = msg
 
