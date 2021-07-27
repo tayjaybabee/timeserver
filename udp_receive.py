@@ -2,6 +2,7 @@
 
 import socket
 import winsound
+from wakeup import interpret
 
 
 def init(host='', port=5005):
@@ -31,7 +32,8 @@ Aborting.')
         data, addr = receive()
         winsound.Beep(1500, 60)
         print(f"From {addr} Recv Port: \
-{recvport} Bytes: {len(data)} Data: {data}")
+{recvport} Bytes: {len(data)}")
+        (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(data[4:40])
 
     end()
 

@@ -46,6 +46,7 @@ def interpret(bytestring):
 Cell with highest voltage at {highcell}V, lowest: {lowcell}V Difference: \
 {difference}V {percent}% charged Temperatures: {temperature1}°C {temperature2}\
 °C {temperature3}°C {temperature4}°C")
+        return(voltage,current,power,highcell,lowcell,difference,percent,[temperature1,temperature2,temperature3,temperature4])
     else:
         print(f"bytes: {len(bytestring)} Data: {bytestring}")
 
@@ -64,7 +65,7 @@ def main():
         last_writetime = time()
         ser.write(wakeup_string)
         serstring = ser.read(size=36)
-        interpret(serstring)
+        (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(serstring)
         if len(serstring) == 36:
             packet = time_32bits(timestamp=last_writetime) + serstring +\
                      b' ' + bytes(str(round(last_writetime, 3)), 'utf-8')
