@@ -5,6 +5,27 @@ from udp_send import init, send, end, time_32bits
 wakeup_string = b"\x3A\x13\x01\x16\x79"
 
 
+def calc(bytearray):
+    check = 0
+    for i in bytearray:
+        check = AddToCRC(i, check)
+    return check
+
+
+def AddToCRC(b, crc):
+    # This function came from
+    # https://gist.github.com/eaydin/768a200c5d68b9bc66e7
+    if (b < 0):
+        b += 256
+    for i in range(8):
+        odd = ((b ^ crc) & 1) == 1
+        crc >>= 1
+        b >>= 1
+        if (odd):
+            crc ^= 0x8C
+    return crc
+
+
 def about_bytestring(wakeup_string):
     print(type(wakeup_string))
     print(len(wakeup_string))
@@ -15,7 +36,7 @@ def interpret(bytestring):
     intarray = []
     for byte in bytestring:
         intarray.append(byte)
-    if len(intarray) == 36:
+    if len(intarray) == 36 and calc(intarray[0:35]) == intarray[35]:
         # voltage = (intarray[22] * 256 + intarray[21]) / 1000.0
         # voltage = np.array([intarray[22],intarray[21]], dtype=np.int16)
         voltage = int. from_bytes([intarray[21], intarray[22]],
@@ -46,9 +67,12 @@ def interpret(bytestring):
 Cell with highest voltage at {highcell}V, lowest: {lowcell}V Difference: \
 {difference}V {percent}% charged Temperatures: {temperature1}°C {temperature2}\
 °C {temperature3}°C {temperature4}°C")
-        return(voltage,current,power,highcell,lowcell,difference,percent,[temperature1,temperature2,temperature3,temperature4])
+        return(voltage, current, power, highcell, lowcell, difference,
+               percent, [temperature1, temperature2, temperature3,
+                         temperature4])
     else:
         print(f"bytes: {len(bytestring)} Data: {bytestring}")
+        return(0, 0, 0, 0, 0, 0, 0, [0, 0, 0, 0])
 
 
 def main():
@@ -65,11 +89,16 @@ def main():
         last_writetime = time()
         ser.write(wakeup_string)
         serstring = ser.read(size=36)
-        (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(serstring)
+        (voltage, current, power, highcell, lowcell, difference, percent,
+         temperatures) = interpret(serstring)
         if len(serstring) == 36:
             packet = time_32bits(timestamp=last_writetime) + serstring +\
                      b' ' + bytes(str(round(last_writetime, 3)), 'utf-8')
-            send(packet=packet, dest=dest, port=5606)
+            if calc(serstring[0:35]) == serstring[35]:
+                send(packet=packet, dest=dest, port=5606)
+            else:
+                print(f"Wrong CRC. expected: {hex(calc(serstring[0:35]))} \
+received: {hex(serstring[35])}")
 
         secondselapsed = time() - last_writetime
         if secondselapsed > 0:

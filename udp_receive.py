@@ -2,27 +2,7 @@
 
 import socket
 import winsound
-from wakeup import interpret
-
-
-def calc(bytearray):
-    check = 0
-    for i in bytearray:
-        check = AddToCRC(i, check)
-    return check
-
-
-def AddToCRC(b, crc):
-    # This function came from https://gist.github.com/eaydin/768a200c5d68b9bc66e7
-    if (b < 0):
-        b += 256
-    for i in range(8):
-        odd = ((b ^ crc) & 1) == 1
-        crc >>= 1
-        b >>= 1
-        if (odd):
-            crc ^= 0x8C
-    return crc
+from wakeup import interpret, calc
 
 
 def init(host='', port=5005):
@@ -58,9 +38,11 @@ Aborting.')
         if received_crc == calculated_crc:
             print(f"From {addr} Recv Port: \
 {recvport} Bytes: {len(data)}")
-            (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(batt_data)
+            (voltage, current, power, highcell, lowcell, difference, percent,
+             temperatures) = interpret(batt_data)
         else:
-            print(f"CRC doesn't match. expected: {hex(calculated_crc)} got {hex(received_crc)}")
+            print(f"CRC doesn't match. expected: {hex(calculated_crc)} got \
+{hex(received_crc)}")
 
     end()
 
