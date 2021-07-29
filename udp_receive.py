@@ -13,6 +13,7 @@ def calc(bytearray):
 
 
 def AddToCRC(b, crc):
+    # This function came from https://gist.github.com/eaydin/768a200c5d68b9bc66e7
     if (b < 0):
         b += 256
     for i in range(8):
