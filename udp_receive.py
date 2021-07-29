@@ -5,6 +5,25 @@ import winsound
 from wakeup import interpret
 
 
+def calc(bytearray):
+    check = 0
+    for i in bytearray:
+        check = AddToCRC(i, check)
+    return check
+
+
+def AddToCRC(b, crc):
+    if (b < 0):
+        b += 256
+    for i in range(8):
+        odd = ((b ^ crc) & 1) == 1
+        crc >>= 1
+        b >>= 1
+        if (odd):
+            crc ^= 0x8C
+    return crc
+
+
 def init(host='', port=5005):
     sock.bind((host, port))
     # optional: set host to this computer's IP address
@@ -31,9 +50,16 @@ Aborting.')
     while okay:
         data, addr = receive()
         winsound.Beep(1500, 60)
-        print(f"From {addr} Recv Port: \
+        batt_data = data[4:40]
+        batt_data_first35 = batt_data[0:35]
+        received_crc = batt_data[35]
+        calculated_crc = calc(batt_data_first35)
+        if received_crc == calculated_crc:
+            print(f"From {addr} Recv Port: \
 {recvport} Bytes: {len(data)}")
-        (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(data[4:40])
+            (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(batt_data)
+        else:
+            print(f"CRC doesn't match. expected: {hex(calculated_crc)} got {hex(received_crc)}")
 
     end()
 
