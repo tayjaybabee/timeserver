@@ -1,8 +1,13 @@
 from time import sleep, time
-import serial  # python3 -m pip install pyserial
 from udp_send import init, send, end, time_32bits
 
 wakeup_string = b"\x3A\x13\x01\x16\x79"
+
+
+def import_serial():
+    import serial
+    # python3 -m pip install pyserial
+    return serial
 
 
 def calc(bytearray):
@@ -119,4 +124,5 @@ received: {hex(serstring[35])}")
 
 
 if __name__ == "__main__":
+    serial = import_serial()
     main()
