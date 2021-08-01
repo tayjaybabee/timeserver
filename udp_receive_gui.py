@@ -10,8 +10,8 @@ import sys
 import winsound
 import socket
 from time import sleep
-from wakeup import interpret
-__version__ = '1.2'
+from wakeup import calc, interpret
+__version__ = '1.3'
 
 WIN_TITLE = f'Broadcast SniffLer (v{__version__})'
 
@@ -264,12 +264,21 @@ def listener():
                 sys.exit()
             data, addr = receive()
             beep()
+            batt_data = data[4:40]
+            batt_data_first35 = batt_data[0:35]
+            received_crc = batt_data[35]
+            calculated_crc = calc(batt_data_first35)
             (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(data[4:40])
-            msg = str(f"From{str(' ' * 12)}{addr} \nRecv Port: \
-    {recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
+            msg = ""
+            if received_crc == calculated_crc:
+                msg = str(f"From{str(' ' * 12)}{addr} \nRecv Port: \
+{recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
 {voltage}V, {current}A, {power}W, Highcell: {highcell}V, Lowcell: \
 {lowcell}V, Difference: {difference}V, {percent}% charged, Temperatures: {temperatures}")
-
+            else:
+                msg = str(f"From{str(' ') * 12}{addr} \nRecv Port: \
+{recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
+CRC doesn't match, expected: {hex(calculated_crc)} got {hex(received_crc)}")
             buffer = msg
 
     end()
