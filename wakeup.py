@@ -68,10 +68,7 @@ def interpret(bytestring):
                 chargedischarge = " (discharging). "
 
         difference = round(highcell - lowcell, 4)
-        print(f"{voltage}V {current}A{chargedischarge}{power}W \
-Cell with highest voltage at {highcell}V, lowest: {lowcell}V Difference: \
-{difference}V {percent}% charged Temperatures: {temperature1}°C {temperature2}\
-°C {temperature3}°C {temperature4}°C")
+        # print(f"{voltage}V {current}A{chargedischarge}{power}W Cell with highest voltage at {highcell}V, lowest: {lowcell}V Difference: {difference}V {percent}% charged Temperatures: {temperature1}°C {temperature2} °C {temperature3}°C {temperature4}°C")
         return(voltage, current, power, highcell, lowcell, difference,
                percent, [temperature1, temperature2, temperature3,
                          temperature4])
