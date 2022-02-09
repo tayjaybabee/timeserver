@@ -1,7 +1,7 @@
 #!/bin/python3
 
 import socket
-import winsound
+# import winsound
 from wakeup import interpret, calc
 
 
@@ -60,12 +60,13 @@ Aborting.')
                     print(byte_hex, end='')                                # print unknown bytes as plain colored text
                 pos += 1
             print("\033[93m{}\033[00m" .format(" " + str(percent) + "% "), end='')
-            print("\033[92m{}\033[00m" .format(str(avgtemp) + "°C "), end='')
-            print("\033[95m{}\033[00m" .format("lo " + str(lowcell) + "V "), end='')
-            print("\033[96m{}\033[00m" .format(str(voltage) + "V "), end='')
-            print("\033[95m{}\033[00m" .format("hi " + str(highcell) + "V "), end='')
-            print("\033[91m{}\033[00m" .format(str(current) + "A "), end='')
-            print(str(power) + "W", end='')
+            print("\033[92m{}\033[00m" .format(str(round(avgtemp, 2)) + "°C "), end='')
+            print("\033[92m{}\033[00m" .format(str(round((avgtemp * 1.8) + 32.0, 1)) + "°F "), end='')
+            print("\033[95m{}\033[00m" .format("lo " + str(round(lowcell, 3)) + "V "), end='')
+            print("\033[96m{}\033[00m" .format(str(round(voltage, 3)) + "V "), end='')
+            print("\033[95m{}\033[00m" .format("hi " + str(round(highcell, 3)) + "V "), end='')
+            print("\033[91m{}\033[00m" .format(str(round(current, 3)) + "A "), end='')
+            print(str(round(power, 1)) + "W", end='')
             print('')                                                      # new line
         else:
             print(f"CRC doesn't match. expected: {hex(calculated_crc)} got \
