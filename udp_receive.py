@@ -3,9 +3,10 @@
 import socket
 # import winsound
 from wakeup import interpret, calc
+from colorama import init
 
 
-def init(host='', port=5005):
+def udpinit(host='', port=5005):
     sock.bind((host, port))
     # optional: set host to this computer's IP address
 
@@ -20,9 +21,10 @@ def end():
 
 
 def main():
+    init()  # Enable ANSI color in the terminal if running from Windows
     recvport = 5606
     try:
-        init(port=recvport)
+        udpinit(port=recvport)
         okay = True
     except:
         print(f'Port {recvport} is already open by another application. \
