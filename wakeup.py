@@ -44,14 +44,14 @@ def interpret(bytestring):
     if len(intarray) == 36 and calc(intarray[0:35]) == intarray[35]:
         # voltage = (intarray[22] * 256 + intarray[21]) / 1000.0
         # voltage = np.array([intarray[22],intarray[21]], dtype=np.int16)
-        voltage = int. from_bytes([intarray[21], intarray[22]],
-                                  byteorder="little", signed=False) / 1000.0
-        current = int. from_bytes([intarray[25], intarray[26]],
+        voltage = int. from_bytes([intarray[21], intarray[22], intarray[23], intarray[24]],
+                                  byteorder="little", signed=True) / 1000.0
+        current = int. from_bytes([intarray[25], intarray[26], intarray[27], intarray[28]],
                                   byteorder="little", signed=True) / 1000.0
         highcell = int. from_bytes([intarray[29], intarray[30]],
-                                   byteorder="little", signed=False) / 1000.0
+                                   byteorder="little", signed=True) / 1000.0
         lowcell = int. from_bytes([intarray[31], intarray[32]],
-                                  byteorder="little", signed=False) / 1000.0
+                                  byteorder="little", signed=True) / 1000.0
         percent = intarray[5]
         temperature1 = intarray[7]
         temperature2 = intarray[8]

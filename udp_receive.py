@@ -50,9 +50,9 @@ Aborting.')
                     print("\033[93m{}\033[00m" .format(byte_hex), end='')  # print % byte in yellow
                 elif (pos > 6 and pos < 11):
                     print("\033[92m{}\033[00m" .format(byte_hex), end='')  # print temperature bytes in green
-                elif (pos > 24 and pos < 27):
+                elif (pos > 24 and pos < 29):
                     print("\033[91m{}\033[00m" .format(byte_hex), end='')  # print current bytes in red
-                elif (pos > 20 and pos < 23):
+                elif (pos > 20 and pos < 25):
                     print("\033[96m{}\033[00m" .format(byte_hex), end='')  # print voltage bytes in cyan
                 elif (pos > 28 and pos < 33):
                     print("\033[95m{}\033[00m" .format(byte_hex), end='')  # print cell hi/lo voltage bytes in purple
