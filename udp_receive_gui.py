@@ -11,7 +11,7 @@ import winsound
 import socket
 from time import sleep
 from wakeup import calc, interpret
-__version__ = '1.3'
+__version__ = '1.4'
 
 WIN_TITLE = f'Broadcast SniffLer (v{__version__})'
 
@@ -196,7 +196,7 @@ def get_win_layout():
     return layout
 
 
-def init(host='', port=5005):
+def udpinit(host='', port=5005):
     sock.bind((host, port))
     # optional: set host to this computer's IP address
 
@@ -251,7 +251,7 @@ def listener():
     while running:
 
         try:
-            init(port=recvport)
+            udpinit(port=recvport)
             okay = True
         except:
             print(f'Port {recvport} is already open by another application. \
@@ -268,17 +268,27 @@ def listener():
             batt_data_first35 = batt_data[0:35]
             received_crc = batt_data[35]
             calculated_crc = calc(batt_data_first35)
-            (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(data[4:40])
             msg = ""
             if received_crc == calculated_crc:
-                msg = str(f"From{str(' ' * 12)}{addr} \nRecv Port: \
-{recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
-{voltage}V, {current}A, {power}W, Highcell: {highcell}V, Lowcell: \
-{lowcell}V, Difference: {difference}V, {percent}% charged, Temperatures: {temperatures}")
+                (voltage, current, power, highcell, lowcell, difference,
+                 percent, temperatures) = interpret(batt_data)
+                batt_data_hex = batt_data.hex()
+                avgtemp = (temperatures[0] + temperatures[1] +
+                           temperatures[2] + temperatures[3]) / 4.0
+                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recvport}\
+\n{batt_data_hex}\
+\n{str(percent)}% \
+{str(round(avgtemp, 2))}°C \
+{str(round((avgtemp * 1.8) + 32.0, 1))}°F \
+lo {str(round(lowcell, 3))}V \
+{str(round(voltage, 3))}V \
+hi {str(round(highcell, 3))}V \
+{str(round(current, 3))}A \
+{str(round(power, 1))}W")
             else:
-                msg = str(f"From{str(' ') * 12}{addr} \nRecv Port: \
-{recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
-CRC doesn't match, expected: {hex(calculated_crc)} got {hex(received_crc)}")
+                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recvport} \
+Bytes: {str(len(data))} Data packet received:\
+\n{data.hex()}")
             buffer = msg
 
     end()
@@ -381,8 +391,7 @@ def main():
         if buffer != last_read:
             counter += 1
             count = Numerical(counter)
-            out = str('-' * 15) + ' Packet #' + count.commify() + \
-                '\n' + buffer + '\n' + str('-' * 15)
+            out = "[" + count.commify() + '] ' + buffer + ' '
             win['MULTILINE'].print(out + '\n')
             last_read = buffer
             
