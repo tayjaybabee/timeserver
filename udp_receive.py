@@ -30,6 +30,7 @@ def main():
         print(f'Port {recvport} is already open by another application. \
 Aborting.')
         okay = False
+    prev_batt_data_hex = ''
     while okay:
         data, addr = receive()
         # winsound.Beep(1500, 60) // this gets annoying
@@ -41,35 +42,41 @@ Aborting.')
             # print(f"From {addr} Recv Port: {recvport} Bytes: {len(data)}")
             (voltage, current, power, highcell, lowcell, difference, percent,
              temperatures) = interpret(batt_data)
-            avgtemp = (temperatures[0] + temperatures[1] + temperatures[2] + temperatures[3]) / 4.0
+            avgtemp = (temperatures[0] + temperatures[1] +
+                       temperatures[2] + temperatures[3]) / 4.0
             # batt_data_hex = batt_data.hex()
             pos = 0
             for byte in batt_data:
-                byte_hex = hex(byte)[2:].zfill(2)
+                byte_hex = hex(byte)[2:].zfill(2).upper()
                 if pos == 5:
-                    print("\033[93m{}\033[00m" .format(byte_hex), end='')  # print % byte in yellow
+                    print(f"\033[33m{byte_hex}\033[00m", end='')     # print % byte in yellow
                 elif (pos > 6 and pos < 11):
-                    print("\033[92m{}\033[00m" .format(byte_hex), end='')  # print temperature bytes in green
+                    print(f"\033[32m{byte_hex}\033[00m", end='')     # print temperature bytes in green
                 elif (pos > 24 and pos < 29):
-                    print("\033[91m{}\033[00m" .format(byte_hex), end='')  # print current bytes in red
+                    print(f"\033[31m{byte_hex}\033[00m", end='')     # print current bytes in red
                 elif (pos > 20 and pos < 25):
-                    print("\033[96m{}\033[00m" .format(byte_hex), end='')  # print voltage bytes in cyan
+                    print(f"\033[36m{byte_hex}\033[00m", end='')     # print voltage bytes in cyan
                 elif (pos > 28 and pos < 33):
-                    print("\033[95m{}\033[00m" .format(byte_hex), end='')  # print cell hi/lo voltage bytes in purple
-                elif (pos == 35):
-                    print("\033[90m{}\033[00m" .format(byte_hex), end='')  # print crc in gray
+                    print(f"\033[35m{byte_hex}\033[00m", end='')     # print cell hi/lo voltage bytes in magenta
+                elif pos == 35:
+                    print(f"\033[30;01m{byte_hex}\033[00m", end='')  # print crc in dark grey
                 else:
-                    print(byte_hex, end='')                                # print unknown bytes as plain colored text
+                    if (len(prev_batt_data_hex) > 71 and byte_hex == prev_batt_data_hex[pos * 2:(pos * 2) + 2]):
+                        print(byte_hex, end='')                          # print unknown bytes without formatting
+                    else:                                                # invert foreground/background if an
+                        print(f"\033[30;47m{byte_hex}\033[00m", end='')  # unknown byte differs from previous packet
                 pos += 1
-            print("\033[93m{}\033[00m" .format(" " + str(percent) + "% "), end='')
-            print("\033[92m{}\033[00m" .format(str(round(avgtemp, 2)) + "°C "), end='')
-            print("\033[92m{}\033[00m" .format(str(round((avgtemp * 1.8) + 32.0, 1)) + "°F "), end='')
-            print("\033[95m{}\033[00m" .format("lo " + str(round(lowcell, 3)) + "V "), end='')
-            print("\033[96m{}\033[00m" .format(str(round(voltage, 3)) + "V "), end='')
-            print("\033[95m{}\033[00m" .format("hi " + str(round(highcell, 3)) + "V "), end='')
-            print("\033[91m{}\033[00m" .format(str(round(current, 3)) + "A "), end='')
-            print(str(round(power, 1)) + "W", end='')
-            print('')                                                      # new line
+            prev_batt_data_hex = batt_data.hex().zfill(72).upper()
+            print("\033[33m{}\033[00m" .format(" " + str(percent) + "% "), end='')
+            print(f"\033[32m{round(avgtemp, 2)}°C \033[00m", end='')
+            print(f"\033[32m{round((avgtemp * 1.8) + 32.0, 1)}°F \033[00m", end='')
+            print(f"\033[35mlo {round(lowcell, 3)}V \033[00m", end='')
+            print(f"\033[36m{round(voltage, 3)}V \033[00m", end='')
+            print(f"\033[35mhi {round(highcell, 3)}V \033[00m", end='')
+            print(f"\033[31m{round(current, 3)}A \033[00m", end='')
+            print(f"{round(power, 1)}W", end='')
+            print('')                                                # new line
+            # print(prev_batt_data_hex)
         else:
             print(f"CRC doesn't match. expected: {hex(calculated_crc)} got \
 {hex(received_crc)}")
