@@ -20,6 +20,26 @@ def end():
     sock.close()
 
 
+def packet_valid(data):
+    if len(data) < 41:
+        print(f"packet too small, got {len(data)} bytes; expected 40 plus a few ascii characters representing the date & time.")
+        return False
+    else:
+        batt_data = data[4:40]
+        batt_data_first35 = batt_data[0:35]
+        received_crc = batt_data[35]
+        calculated_crc = calc(batt_data_first35)
+        if received_crc != calculated_crc:
+            print(f"CRC doesn't match. expected: {hex(calculated_crc)} got {hex(received_crc)}")
+            return False
+        else:
+            if (batt_data[0:5] != b"\x3A\x16\x20\x02\x00") or (batt_data[33:35] != b"\x52\x2C"):
+                print(f"Expected to see 3A16200200 and 522C but got: {batt_data[0:5].hex()} and {batt_data[33:35].hex()}.")
+                return False
+            else:
+                return True
+
+
 def main():
     init()  # Enable ANSI color in the terminal if running from Windows
     recvport = 5606
@@ -38,7 +58,7 @@ Aborting.')
         batt_data_first35 = batt_data[0:35]
         received_crc = batt_data[35]
         calculated_crc = calc(batt_data_first35)
-        if received_crc == calculated_crc:
+        if packet_valid(data):
             # print(f"From {addr} Recv Port: {recvport} Bytes: {len(data)}")
             (voltage, current, power, highcell, lowcell, difference, percent,
              temperatures) = interpret(batt_data)
@@ -78,8 +98,8 @@ Aborting.')
             print('')                                                # new line
             # print(prev_batt_data_hex)
         else:
-            print(f"CRC doesn't match. expected: {hex(calculated_crc)} got \
-{hex(received_crc)}")
+            pass
+            # print(f"CRC doesn't match or received packet otherwise invalid. expected: {hex(calculated_crc)} got {hex(received_crc)}")
 
     end()
 
