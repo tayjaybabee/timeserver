@@ -11,7 +11,7 @@ import winsound
 import socket
 from time import sleep
 from wakeup import calc, interpret
-__version__ = '1.3'
+__version__ = '1.4'
 
 WIN_TITLE = f'Broadcast SniffLer (v{__version__})'
 
@@ -76,8 +76,8 @@ def install_missing(install_name):
         from inspyre_toolbox.humanize import Numerical
 
     numerical = Numerical
-    num_missing = numerical(len(to_install))
-    missing_count = num_missing.count_noun('packages')
+    num_missing = numerical(len(to_install), 'package')
+    missing_count = num_missing.count_noun()
 
     for pkg in to_install:
         print(f"Missing {install_name}, installing...")
@@ -112,8 +112,8 @@ except ImportError:
     missing.append('pyperclip')
 
 if len(missing) >= 1:
-    num = Numerical(len(missing))
-    if yes_no_dialog(f"You are missing {num.count_noun('package')}. Should I install them?"):
+    num = Numerical(len(missing), 'package')
+    if yes_no_dialog(f"You are missing {num.count_noun()}. Should I install them?"):
         install_missing(missing)
 
 import PySimpleGUI as psg
@@ -139,12 +139,10 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 def get_win_layout():
     """
     Returns the layout object for our PySimpleGUI window
-
     Returns
     -------
     layout : list
         A list that will act as our layout plot for our window.
-
     """
     global muted, copy_on_exit
 
@@ -196,7 +194,7 @@ def get_win_layout():
     return layout
 
 
-def init(host='', port=5005):
+def udpinit(host='', port=5005):
     sock.bind((host, port))
     # optional: set host to this computer's IP address
 
@@ -218,11 +216,9 @@ def to_cb(vals):
 def beep():
     """
     Beeps if instance variable 'muted' is not bool(True)
-
     Returns
     -------
     None.
-
     """
     global muted
     
@@ -235,11 +231,9 @@ def beep():
 def listener():
     """
     Listens for UDP broadcast traffic as long as 'running' is bool(True)
-
     Returns
     -------
     None.
-
     """
     global buffer, running
 
@@ -251,7 +245,7 @@ def listener():
     while running:
 
         try:
-            init(port=recvport)
+            udpinit(port=recvport)
             okay = True
         except:
             print(f'Port {recvport} is already open by another application. \
@@ -268,17 +262,27 @@ def listener():
             batt_data_first35 = batt_data[0:35]
             received_crc = batt_data[35]
             calculated_crc = calc(batt_data_first35)
-            (voltage, current, power, highcell, lowcell, difference, percent, temperatures) = interpret(data[4:40])
             msg = ""
             if received_crc == calculated_crc:
-                msg = str(f"From{str(' ' * 12)}{addr} \nRecv Port: \
-{recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
-{voltage}V, {current}A, {power}W, Highcell: {highcell}V, Lowcell: \
-{lowcell}V, Difference: {difference}V, {percent}% charged, Temperatures: {temperatures}")
+                (voltage, current, power, highcell, lowcell, difference,
+                 percent, temperatures) = interpret(batt_data)
+                batt_data_hex = batt_data.hex()
+                avgtemp = (temperatures[0] + temperatures[1] +
+                           temperatures[2] + temperatures[3]) / 4.0
+                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recvport}\
+\n{batt_data_hex}\
+\n{str(percent)}% \
+{str(round(avgtemp, 2))}°C \
+{str(round((avgtemp * 1.8) + 32.0, 1))}°F \
+lo {str(round(lowcell, 3))}V \
+{str(round(voltage, 3))}V \
+hi {str(round(highcell, 3))}V \
+{str(round(current, 3))}A \
+{str(round(power, 1))}W")
             else:
-                msg = str(f"From{str(' ') * 12}{addr} \nRecv Port: \
-{recvport} \nBytes:{str(' ' * 10)}{len(data)} \nData: {data}\n\
-CRC doesn't match, expected: {hex(calculated_crc)} got {hex(received_crc)}")
+                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recvport} \
+Bytes: {str(len(data))} Data packet received:\
+\n{data.hex()}")
             buffer = msg
 
     end()
@@ -287,14 +291,11 @@ CRC doesn't match, expected: {hex(calculated_crc)} got {hex(received_crc)}")
 def safe_exit(window, values=None):
     """
     Just as implied, exits the program safely.
-
     Exits the program safely, killing the daemonized thread by assigning
     bool(False) to 'running'
-
     Returns
     -------
     None.
-
     """
     global running, copy_on_exit
     print("Exiting per user request.")
@@ -381,8 +382,7 @@ def main():
         if buffer != last_read:
             counter += 1
             count = Numerical(counter)
-            out = str('-' * 15) + ' Packet #' + count.commify() + \
-                '\n' + buffer + '\n' + str('-' * 15)
+            out = "[" + count.commify() + '] ' + buffer + ' '
             win['MULTILINE'].print(out + '\n')
             last_read = buffer
             
