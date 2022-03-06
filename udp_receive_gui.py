@@ -3,15 +3,20 @@
 # BUGGY Run through another easily killable script or be ready to
 # use your task manager.
 
-from argparse import ArgumentParser
-from threading import Thread
 import os
 import sys
-import winsound
+from argparse import ArgumentParser
+from threading import Thread
+
+if os.name == 'nt':
+    import winsound
+
 import socket
 from time import sleep
 from wakeup import calc, interpret
-__version__ = '1.4'
+from errors import EmptyBufferError
+
+__version__ = '1.6.1'
 
 WIN_TITLE = f'Broadcast SniffLer (v{__version__})'
 
@@ -21,7 +26,7 @@ numerical = None
 class ArgParser(ArgumentParser):
     def __init__(self):
         super().__init__()
-        
+
         self.add_argument('-m',
                           '--mute',
                           help="Don't play any sound while operating.",
@@ -29,15 +34,16 @@ class ArgParser(ArgumentParser):
                           required=False,
                           default=False
                           )
-        
+
         self.add_argument(
             '--copy-on-exit',
             help="Copy all the outout to the clipboard on exiting.",
             action='store_true',
             required=False,
             default=False
-            )
-        
+        )
+
+
 args = ArgParser()
 args = args.parse_args()
 
@@ -61,7 +67,7 @@ def install_missing(install_name):
         try:
             if len(to_install) != 1:
                 if len(to_install) == 2:
-                    if not'inspyre-toolbox' and 'prompt-toolkit' in to_install:
+                    if not 'inspyre-toolbox' and 'prompt-toolkit' in to_install:
                         raise ValueError(to_install)
 
         except ValueError as e:
@@ -76,8 +82,8 @@ def install_missing(install_name):
         from inspyre_toolbox.humanize import Numerical
 
     numerical = Numerical
-    num_missing = numerical(len(to_install))
-    missing_count = num_missing.count_noun('packages')
+    num_missing = numerical(len(to_install), 'package')
+    missing_count = num_missing.count_noun()
 
     for pkg in to_install:
         print(f"Missing {install_name}, installing...")
@@ -95,7 +101,6 @@ except ImportError as e:
     except:
         raise
 
-
 try:
     import PySimpleGUI as psg
 except ImportError:
@@ -105,15 +110,15 @@ try:
     from inspyre_toolbox.humanize import Numerical
 except ImportError:
     install_missing('inspyre-toolbox')
-    
+
 try:
     import pyperclip as cb
 except ImportError:
     missing.append('pyperclip')
 
 if len(missing) >= 1:
-    num = Numerical(len(missing))
-    if yes_no_dialog(f"You are missing {num.count_noun('package')}. Should I install them?"):
+    num = Numerical(len(missing), 'package')
+    if yes_no_dialog(f"You are missing {num.count_noun()}. Should I install them?"):
         install_missing(missing)
 
 import PySimpleGUI as psg
@@ -121,7 +126,6 @@ import pyperclip as cb
 
 muted = args.mute
 copy_on_exit = args.copy_on_exit
-
 
 # Declare our theme choice
 psg.theme("DarkAmber")
@@ -139,12 +143,10 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 def get_win_layout():
     """
     Returns the layout object for our PySimpleGUI window
-
     Returns
     -------
     layout : list
         A list that will act as our layout plot for our window.
-
     """
     global muted, copy_on_exit
 
@@ -169,12 +171,12 @@ def get_win_layout():
         ],
         [
             psg.Checkbox(
-                'Mute', 
-                enable_events=True, 
-                key='MUTE_CHECK', 
-                default=muted, 
+                'Mute',
+                enable_events=True,
+                key='MUTE_CHECK',
+                default=muted,
                 tooltip="Mute incoming packet ding."
-                ),
+            ),
             psg.VerticalSeparator(),
             psg.Checkbox(
                 'Copy on Exit',
@@ -182,8 +184,8 @@ def get_win_layout():
                 key='COPY_ON_EXIT_CHECK',
                 default=copy_on_exit,
                 tooltip="Copy the output received upon exiting the program.",
-                )
-            
+            )
+
         ],
         [
             psg.Button('Quit', enable_events=True, key='QUIT_BTN'),
@@ -196,54 +198,63 @@ def get_win_layout():
     return layout
 
 
-def udpinit(host='', port=5005):
+def udp_init(host='', port=5005):
     sock.bind((host, port))
     # optional: set host to this computer's IP address
 
 
-def receive(buffersize=1024):
-    data, addr = sock.recvfrom(buffersize)
-    return(data, addr)
+def receive(buffer_size=1024):
+    data, addr = sock.recvfrom(buffer_size)
+    return data, addr
 
 
 def end():
     sock.close()
-    
-    
+
+
 def to_cb(vals):
     field = vals['MULTILINE']
     cb.copy(field)
-    
+
 
 def beep():
     """
     Beeps if instance variable 'muted' is not bool(True)
-
     Returns
     -------
     None.
-
     """
     global muted
-    
+
     if not muted:
-        winsound.Beep(1500, 60)
-        
+        if os.name == 'nt':
+            winsound.Beep(1500, 60)
+
+
+def wrap_message(message: str):
+    _div = str('-' * 25)
+    wrapped = ''
+    wrapped += f"{_div}\n"
+    for line in message.splitlines():
+        wrapped += str('|| ' + line + '\n')
+
+    _div = f"{_div}---"
+    wrapped += f"{_div}\n"
+
+    return wrapped
 
 
 # A function to target with our thread spawner.
 def listener():
     """
     Listens for UDP broadcast traffic as long as 'running' is bool(True)
-
     Returns
     -------
     None.
-
     """
     global buffer, running
 
-    recvport = 5606
+    recv_port = 5606
 
     # Indicate that we are indeed running
     running = True
@@ -251,10 +262,10 @@ def listener():
     while running:
 
         try:
-            udpinit(port=recvport)
+            udp_init(port=recv_port)
             okay = True
         except:
-            print(f'Port {recvport} is already open by another application. \
+            print(f'Port {recv_port} is already open by another application. \
     Aborting.')
             okay = False
             sys.exit()
@@ -270,26 +281,38 @@ def listener():
             calculated_crc = calc(batt_data_first35)
             msg = ""
             if received_crc == calculated_crc:
-                (voltage, current, power, highcell, lowcell, difference,
+                (voltage, current, power, high_cell, low_cell, difference,
                  percent, temperatures) = interpret(batt_data)
                 batt_data_hex = batt_data.hex()
-                avgtemp = (temperatures[0] + temperatures[1] +
-                           temperatures[2] + temperatures[3]) / 4.0
-                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recvport}\
-\n{batt_data_hex}\
-\n{str(percent)}% \
-{str(round(avgtemp, 2))}°C \
-{str(round((avgtemp * 1.8) + 32.0, 1))}°F \
-lo {str(round(lowcell, 3))}V \
-{str(round(voltage, 3))}V \
-hi {str(round(highcell, 3))}V \
-{str(round(current, 3))}A \
-{str(round(power, 1))}W")
+                avg_temp = (temperatures[0] + temperatures[1] +
+                            temperatures[2] + temperatures[3]) / 4.0
+
+                msg += f"From {addr[0]}:{addr[1]} | Listening on port: {recv_port}"
+                msg += f"\nCharge Level: {str(percent)}% | "
+                msg += f"Temperature: {str(round(avg_temp, 2))}°C "
+                msg += f"{str(round((avg_temp * 1.8) + 32.0, 1))}°F | "
+                msg += f"Power Stats: Low {str(round(low_cell, 3))}V "
+                msg += f"{str(round(voltage, 3))}V "
+                msg += f"High {str(round(high_cell, 3))}V "
+                msg += f"{str(round(current, 3))}A "
+                msg += f"{str(round(power, 1))}W"
+                msg += f"\nMessage Hex: {batt_data_hex}"
+
+                # msg = str(f"From: {addr[0]}:{addr[1]} To port: {recv_port}\
+                #             \n{batt_data_hex}\
+                #             \n{str(percent)}% \
+                #             {str(round(avg_temp, 2))}°C \
+                #             {str(round((avg_temp * 1.8) + 32.0, 1))}°F \
+                #             lo {str(round(low_cell, 3))}V \
+                #             {str(round(voltage, 3))}V \
+                #             hi {str(round(high_cell, 3))}V \
+                #             {str(round(current, 3))}A \
+                #             {str(round(power, 1))}W")
             else:
-                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recvport} \
+                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recv_port} \
 Bytes: {str(len(data))} Data packet received:\
 \n{data.hex()}")
-            buffer = msg
+            buffer = wrap_message(msg)
 
     end()
 
@@ -297,24 +320,21 @@ Bytes: {str(len(data))} Data packet received:\
 def safe_exit(window, values=None):
     """
     Just as implied, exits the program safely.
-
     Exits the program safely, killing the daemonized thread by assigning
     bool(False) to 'running'
-
     Returns
     -------
     None.
-
     """
     global running, copy_on_exit
     print("Exiting per user request.")
     running = False
     if copy_on_exit and values is not None:
         to_cb(values)
-        
+
     if not window.was_closed():
         window.close()
-        
+
     sys.exit()
 
 
@@ -344,8 +364,10 @@ def main():
     last_read = None
 
     counter = 0
-    
+
     last_copy_check = None
+
+    buffer_empty_count = 0
 
     # Start our GUI loop.
     while True:
@@ -362,30 +384,26 @@ def main():
             print('User hit "Quit" button')
             safe_exit(win, values)
             break
-        
-        
+
         if event == 'MUTE_CHECK':
             muted = values['MUTE_CHECK']
-            
-        
+
         if event == 'COPY_BTN':
             to_cb(values)
-            
-        
+
         if event == 'COPY_ON_EXIT_CHECK':
             copy_on_exit = values['COPY_ON_EXIT_CHECK']
-            
+
         if values['COPY_ON_EXIT_CHECK']:
             copy_on_exit = True
         else:
             copy_on_exit = False
-        
+
         if not last_copy_check == copy_on_exit:
             vis = not copy_on_exit
             win['COPY_BTN'].update(visible=vis)
-            
+
         last_copy_check = copy_on_exit
-            
 
         # If the buffer is different than the cached buffer;
         if buffer != last_read:
@@ -394,6 +412,13 @@ def main():
             out = "[" + count.commify() + '] ' + buffer + ' '
             win['MULTILINE'].print(out + '\n')
             last_read = buffer
-            
+
+        if buffer is None:
+            buffer_empty_count += 1
+
+            if buffer_empty_count >= 20:
+                raise EmptyBufferError(__name__)
+
+
 if __name__ == "__main__":
     main()
