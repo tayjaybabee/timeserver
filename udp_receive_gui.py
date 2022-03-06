@@ -53,27 +53,24 @@ def install_missing(install_name):
 
     from os import system
     if not isinstance(install_name, list):
-        if isinstance(install_name, str):
-            if install_name != 'prompt-toolkit':
-                to_install = install_name.replace(' ', '').split(',')
-                to_install = install_name.split(',')
-            else:
-                to_install = ['prompt-toolkit']
-        else:
+        if not isinstance(install_name, str):
             raise TypeError()
+        if install_name != 'prompt-toolkit':
+            to_install = install_name.replace(' ', '').split(',')
+            to_install = install_name.split(',')
+        else:
+            to_install = ['prompt-toolkit']
     else:
         to_install = install_name
     if 'prompt-toolkit' in to_install:
         try:
-            if len(to_install) != 1:
-                if len(to_install) == 2:
-                    if not 'inspyre-toolbox' and 'prompt-toolkit' in to_install:
-                        raise ValueError(to_install)
-
+            pass
         except ValueError as e:
             print(
-                "Developer Error. Prompt Toolkit must be passed alone or with inspyre-toolbox")
-            raise e
+                "Developer Error. Prompt Toolkit must be passed alone or with inspyre-toolbox"
+            )
+
+            raise e from e
     try:
         from inspyre_toolbox.humanize import Numerical
     except ModuleNotFoundError:
@@ -150,8 +147,7 @@ def get_win_layout():
     """
     global muted, copy_on_exit
 
-    # The layout for the window
-    layout = [
+    return [
         [
             psg.Text('Incoming packets:')
 
@@ -195,8 +191,6 @@ def get_win_layout():
 
     ]
 
-    return layout
-
 
 def udp_init(host='', port=5005):
     sock.bind((host, port))
@@ -226,9 +220,8 @@ def beep():
     """
     global muted
 
-    if not muted:
-        if os.name == 'nt':
-            winsound.Beep(1500, 60)
+    if not muted and os.name == 'nt':
+        winsound.Beep(1500, 60)
 
 
 def wrap_message(message: str):
@@ -236,7 +229,7 @@ def wrap_message(message: str):
     wrapped = ''
     wrapped += f"{_div}\n"
     for line in message.splitlines():
-        wrapped += str('|| ' + line + '\n')
+        wrapped += str(f'|| {line}' + '\n')
 
     _div = f"{_div}---"
     wrapped += f"{_div}\n"
@@ -270,13 +263,10 @@ def listener():
             okay = False
             sys.exit()
         while okay:
-            if not running:
-                okay = False
-                sys.exit()
             data, addr = receive()
             beep()
             batt_data = data[4:40]
-            batt_data_first35 = batt_data[0:35]
+            batt_data_first35 = batt_data[:35]
             received_crc = batt_data[35]
             calculated_crc = calc(batt_data_first35)
             msg = ""
@@ -309,9 +299,10 @@ def listener():
                 #             {str(round(current, 3))}A \
                 #             {str(round(power, 1))}W")
             else:
-                msg = str(f"From: {addr[0]}:{addr[1]} To port: {recv_port} \
-Bytes: {str(len(data))} Data packet received:\
-\n{data.hex()}")
+                msg = str(
+                    f"From: {addr[0]}:{addr[1]} To port: {recv_port} \\\x1fBytes: {len(data)} Data packet received:\\\x1f\n{data.hex()}"
+                )
+
             buffer = wrap_message(msg)
 
     end()
@@ -394,12 +385,8 @@ def main():
         if event == 'COPY_ON_EXIT_CHECK':
             copy_on_exit = values['COPY_ON_EXIT_CHECK']
 
-        if values['COPY_ON_EXIT_CHECK']:
-            copy_on_exit = True
-        else:
-            copy_on_exit = False
-
-        if not last_copy_check == copy_on_exit:
+        copy_on_exit = bool(values['COPY_ON_EXIT_CHECK'])
+        if last_copy_check != copy_on_exit:
             vis = not copy_on_exit
             win['COPY_BTN'].update(visible=vis)
 
@@ -409,7 +396,7 @@ def main():
         if buffer != last_read:
             counter += 1
             count = Numerical(counter)
-            out = "[" + count.commify() + '] ' + buffer + ' '
+            out = f"[{count.commify()}] {buffer} "
             win['MULTILINE'].print(out + '\n')
             last_read = buffer
 
