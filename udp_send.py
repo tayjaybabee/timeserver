@@ -1,7 +1,7 @@
 #!/bin/python3
 
-from time import sleep, time
 import socket
+from time import sleep, time
 
 
 def init(host=''):
@@ -26,7 +26,7 @@ def time_32bits(timestamp=1626809049):
     epochshift_seconds = epochshift * 24 * 60 * 60
     timestamp = int(epochshift_seconds + timestamp)
     binary = int.to_bytes(timestamp, 4, 'big', signed=False)
-    return(binary)
+    return (binary)
     # Time protocol is unsigned  32-bit  integer number of seconds since
     # midnight Jan 1 1900 served on TCP port 37 upon opening TCP session
     # The difference between  Unix time  and  Time protocol is 70 years;
