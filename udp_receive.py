@@ -1,9 +1,11 @@
 #!/bin/python3
 
 import socket
+
+from colorama import init
+
 # import winsound
 from wakeup import interpret, calc
-from colorama import init
 
 
 def udpinit(host='', port=5005):
@@ -13,7 +15,7 @@ def udpinit(host='', port=5005):
 
 def receive(buffersize=1024):
     data, addr = sock.recvfrom(buffersize)
-    return(data, addr)
+    return (data, addr)
 
 
 def end():
@@ -22,7 +24,8 @@ def end():
 
 def packet_valid(data):
     if len(data) < 41:
-        print(f"packet too small, got {len(data)} bytes; expected 40 plus a few ascii characters representing the date & time.")
+        print(
+            f"packet too small, got {len(data)} bytes; expected 40 plus a few ascii characters representing the date & time.")
         return False
     else:
         batt_data = data[4:40]
@@ -34,7 +37,8 @@ def packet_valid(data):
             return False
         else:
             if (batt_data[0:5] != b"\x3A\x16\x20\x02\x00") or (batt_data[33:35] != b"\x52\x2C"):
-                print(f"Expected to see 3A16200200 and 522C but got: {batt_data[0:5].hex()} and {batt_data[33:35].hex()}.")
+                print(
+                    f"Expected to see 3A16200200 and 522C but got: {batt_data[0:5].hex()} and {batt_data[33:35].hex()}.")
                 return False
             else:
                 return True
@@ -69,25 +73,25 @@ Aborting.')
             for byte in batt_data:
                 byte_hex = hex(byte)[2:].zfill(2).upper()
                 if pos == 5:
-                    print(f"\033[33m{byte_hex}\033[00m", end='')     # print % byte in yellow
+                    print(f"\033[33m{byte_hex}\033[00m", end='')  # print % byte in yellow
                 elif (pos > 6 and pos < 11):
-                    print(f"\033[32m{byte_hex}\033[00m", end='')     # print temperature bytes in green
+                    print(f"\033[32m{byte_hex}\033[00m", end='')  # print temperature bytes in green
                 elif (pos > 24 and pos < 29):
-                    print(f"\033[31m{byte_hex}\033[00m", end='')     # print current bytes in red
+                    print(f"\033[31m{byte_hex}\033[00m", end='')  # print current bytes in red
                 elif (pos > 20 and pos < 25):
-                    print(f"\033[36m{byte_hex}\033[00m", end='')     # print voltage bytes in cyan
+                    print(f"\033[36m{byte_hex}\033[00m", end='')  # print voltage bytes in cyan
                 elif (pos > 28 and pos < 33):
-                    print(f"\033[35m{byte_hex}\033[00m", end='')     # print cell hi/lo voltage bytes in magenta
+                    print(f"\033[35m{byte_hex}\033[00m", end='')  # print cell hi/lo voltage bytes in magenta
                 elif pos == 35:
                     print(f"\033[30;01m{byte_hex}\033[00m", end='')  # print crc in dark grey
                 else:
                     if (len(prev_batt_data_hex) > 71 and byte_hex == prev_batt_data_hex[pos * 2:(pos * 2) + 2]):
-                        print(byte_hex, end='')                          # print unknown bytes without formatting
-                    else:                                                # invert foreground/background if an
+                        print(byte_hex, end='')  # print unknown bytes without formatting
+                    else:  # invert foreground/background if an
                         print(f"\033[30;47m{byte_hex}\033[00m", end='')  # unknown byte differs from previous packet
                 pos += 1
             prev_batt_data_hex = batt_data.hex().zfill(72).upper()
-            print("\033[33m{}\033[00m" .format(" " + str(percent) + "% "), end='')
+            print("\033[33m{}\033[00m".format(" " + str(percent) + "% "), end='')
             print(f"\033[32m{round(avgtemp, 2)}°C \033[00m", end='')
             print(f"\033[32m{round((avgtemp * 1.8) + 32.0, 1)}°F \033[00m", end='')
             print(f"\033[35mlo {round(lowcell, 3)}V \033[00m", end='')
@@ -95,7 +99,7 @@ Aborting.')
             print(f"\033[35mhi {round(highcell, 3)}V \033[00m", end='')
             print(f"\033[31m{round(current, 3)}A \033[00m", end='')
             print(f"{round(power, 1)}W", end='')
-            print('')                                                # new line
+            print('')  # new line
             # print(prev_batt_data_hex)
         else:
             pass
